@@ -8,8 +8,8 @@
 ### setup
 
 ```bash
-mkdir ./server/build
-cd server/build
+mkdir build
+cd build
 cmake ..
 make
 sudo ./BastardPixelBattle 
