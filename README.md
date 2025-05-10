@@ -12,6 +12,6 @@ mkdir build
 cd build
 cmake ..
 make
-sudo ./BastardPixelBattle 
+sudo ./BastardPixelBattleServer
 ```
 Server running
