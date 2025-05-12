@@ -1,0 +1,84 @@
+# build:
+# docker build -t bpb-server -f DockerFile .
+# run:
+# docker run -d -p 9123:8080 bpb-server &
+# STAGE 1: Build
+FROM kitware/cmake:ci-debian12-x86_64-2025-03-31 AS stage-build
+# install dependences
+## 1. update apt and install avalible dependences
+## 2. add repository to apt, and sign it with gpg key
+## 3. update apt again and install basfetch, other dependences using basfetch
+## 4. deleting apt packages list to save disk memory
+RUN apt-get update \
+    # 1 \
+    && apt-get install -y --no-install-recommends \
+        g++ \
+        libboost-dev \
+        nlohmann-json3-dev \
+        git \
+        curl \
+    # 2 \
+    && curl -fsSL https://frobe11.github.io/bastard-apt-repository/repo.key  | \ 
+        sudo gpg --dearmor -o /usr/share/keyrings/basrepo-archive-keyring.gpg\  
+        && echo "deb [signed-by=/usr/share/keyrings/basrepo-archive-keyring.gpg] https://frobe11.github.io/bastard-apt-repository/  focal main" | \
+        sudo tee /etc/apt/sources.list.d/basfetch.list \
+    # 3 \
+    && apt update \
+        && apt install -y basfetch\
+        && basfetch -t https://github.com/laserpants/dotenv-cpp.git\
+    # 4 \
+    && rm -rf /var/lib/apt/lists/* 
+
+WORKDIR /app
+# copy sources
+COPY . .
+# build server
+RUN rm -rf build &&\
+    mkdir build &&\
+    cd build &&\
+    cmake .. &&\
+    make
+
+CMD ./build/BastardPixelBattleServer
+
+# STAGE 2: Run binary TODO: don't work, because cant find bastard-apt-repo's certificate. idk why
+# FROM ubuntu:22.04
+# WORKDIR /app
+# # copy bastard repo's gpg key 
+# COPY --from=stage-build /usr/share/keyrings/basrepo-archive-keyring.gpg /app/keyrings/basrepo-archive-keyring.gpg
+
+# # install dependences
+# ## 1. update apt and install avalible dependences
+# ## 2. add repository to apt, and sign it with gpg key TODO: dont work
+# ## 3. update apt again and install basfetch, other dependences using basfetch
+# ## 4. deleting apt packages list to save disk memory
+# RUN apt-get update \
+#     # 1 
+#     && apt-get install -y --no-install-recommends \
+#         curl \
+#         libboost-dev \
+#         nlohmann-json3-dev \
+#         git \
+#         gpg \
+#         sudo\
+#     # 2 TODO: dont work
+#     && curl -fsSL https://frobe11.github.io/bastard-apt-repository/repo.key  | \ 
+#         sudo gpg --dearmor -o /usr/share/keyrings/basrepo-archive-keyring.gpg\  
+#         && echo "deb [signed-by=/usr/share/keyrings/basrepo-archive-keyring.gpg] https://frobe11.github.io/bastard-apt-repository/  focal main" | \
+#         sudo tee /etc/apt/sources.list.d/basfetch.list \
+#     # 3 
+#     && apt update \
+#         && apt install -y basfetch\
+#         && basfetch -t https://github.com/laserpants/dotenv-cpp.git\
+#     # 4 
+#     && rm -rf /var/lib/apt/lists/* 
+
+# COPY --from=stage-build /app/build .
+
+# COPY .env ./.env
+
+# EXPOSE 8080
+
+# CMD ./BastardPixelBattleServer
+# # CMD ["./BastardPixelBattleServer &"]
+
