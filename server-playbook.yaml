@@ -1,26 +1,48 @@
 ---
-- name: First playbook
+- name: Deploy project with DockerFile
   hosts: deployment_target
   become: true
-  tasks:
-    - name: Downloading Apache
-      ansible.builtin.apt:
-        name: apache2
-        state: present
+  vars:
+    repo_url: "https://github.com/frobe11/bastard-pixel-battle-server"
+    project_dir: "/home/{{ ansible_user }}/projects/bastard-pixel-battle-server"
+    docker_image_name: "bpb-server"
+    container_name: "bpb-server-container"
+    container_port: "8080"
 
-    - name: S Apache
-      ansible.builtin.service:
-        name: apache2
-        state: started
-    - name: Description
-        # Comment
-      ansible.builtin.apt:
-        allow_downgrade: true
-        allow_unauthenticated: true
-        autoclean: true
-        autoremove: true
-        force: true
-        install_recommends: false
-        name:
-          - element
-        update_cache: false
+  tasks:
+    - name: Clone git repo
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ project_dir }}"
+        version: main
+        update: true
+      tags:
+        - build
+
+    - name: Build Docker-image
+      community.docker.docker_image:
+        name: "{{ docker_image_name }}"
+        build:
+          path: "{{ project_dir }}"
+        source: build
+      tags:
+        - build
+
+    - name: Clean up old container, if it exist ofc
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      tags:
+        - clean up
+
+    - name: Run new container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ docker_image_name }}"
+        ports:
+          - "{{ container_port }}:8080"
+        env:
+          PORT: 8080
+        detach: true
+      tags:
+        - deploy

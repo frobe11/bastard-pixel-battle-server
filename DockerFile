@@ -2,7 +2,7 @@
 # docker build -t bpb-server -f DockerFile .
 # run:
 # docker run -d -p 9123:8080 bpb-server &
-# STAGE 1: Build
+# STAGE 1: Buil
 FROM kitware/cmake:ci-debian12-x86_64-2025-03-31 AS stage-build
 # install dependences
 ## 1. update apt and install avalible dependences
