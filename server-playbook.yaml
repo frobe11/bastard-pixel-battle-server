@@ -1,13 +1,14 @@
 ---
 - name: Deploy project with DockerFile
-  hosts: deployment_target
+  hosts: deployment-target
   become: true
   vars:
-    repo_url: "https://github.com/frobe11/bastard-pixel-battle-server"
-    project_dir: "/home/{{ ansible_user }}/projects/bastard-pixel-battle-server"
+    repo_url: "https://github.com/frobe11/bastard-pixel-battle-server.git"
+    project_dir: "/home/{{ ansible_user }}/deployment/bastard-pixel-battle-server"
     docker_image_name: "bpb-server"
     container_name: "bpb-server-container"
-    container_port: "8080"
+    container_port: "9124"
+    dockerfile: DockerFile
 
   tasks:
     - name: Clone git repo
@@ -20,11 +21,10 @@
         - build
 
     - name: Build Docker-image
-      community.docker.docker_image:
+      community.docker.docker_image_build:
         name: "{{ docker_image_name }}"
-        build:
-          path: "{{ project_dir }}"
-        source: build
+        path: "{{ project_dir }}"
+        dockerfile: "{{ dockerfile }}"
       tags:
         - build
 
@@ -33,16 +33,18 @@
         name: "{{ container_name }}"
         state: absent
       tags:
-        - clean up
+        - clean_up
 
     - name: Run new container
       community.docker.docker_container:
         name: "{{ container_name }}"
         image: "{{ docker_image_name }}"
+        state: started
+        restart_policy: always
         ports:
           - "{{ container_port }}:8080"
         env:
-          PORT: 8080
+          PORT: "8080"
         detach: true
       tags:
         - deploy
